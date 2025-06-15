@@ -1,0 +1,13 @@
+﻿<Window x:Class="Wim.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		WindowStyle="None"
+		AllowsTransparency="True"
+		Background="Transparent"
+		Topmost="True"
+		ShowInTaskbar="False"
+		ResizeMode="NoResize"
+		WindowState="Maximized"
+		Focusable="False">
+		<Canvas x:Name="OverlayCanvas" IsHitTestVisible="False" />
+</Window>
