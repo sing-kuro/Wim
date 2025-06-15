@@ -143,7 +143,7 @@ namespace Wim
                     var pluginInstance = (IPlugin?)Activator.CreateInstance(type);
 					if (pluginInstance == null)
 					{
-						MessageManager.NotifyAll($"Failed to create instance of plugin type {type.FullName} from {pluginPath}.", "Error");
+						MessageManager.NotifyAll("Error", $"Failed to create instance of plugin type {type.FullName} from {pluginPath}.");
 						continue;
 					}
 					pluginInstance.Initialize(this);
@@ -151,17 +151,17 @@ namespace Wim
 					if (!Plugins.ContainsKey(pluginName))
 					{
 						Plugins[pluginName] = pluginInstance;
-						MessageManager.NotifyAll($"Plugin '{pluginName}' loaded successfully.", "Info");
+						MessageManager.NotifyAll("Info", $"Plugin '{pluginName}' loaded successfully.");
 					}
 					else
 					{
-						MessageManager.NotifyAll($"Plugin '{pluginName}' is already loaded.", "Warning");
+						MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' is already loaded.");
                     }
                 }
 			}
 			catch (Exception ex)
 			{
-				MessageManager.NotifyAll($"Failed to load plugin from {pluginPath}: {ex.Message}", "Error");
+				MessageManager.NotifyAll("Error", $"Failed to load plugin from {pluginPath}: {ex.Message}");
 			}
         }
 
@@ -179,7 +179,7 @@ namespace Wim
 			}
 			else
 			{
-				MessageManager.NotifyAll($"Plugin '{pluginName}' not found.", "Warning");
+				MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' not found.");
             }
         }
 
@@ -191,7 +191,7 @@ namespace Wim
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
-                    MessageManager.NotifyAll($"Method '{methodName}' not found in plugin '{pluginName}'.", "Error");
+					MessageManager.NotifyAll("Error", $"Method '{methodName}' not found in plugin '{pluginName}'.");
                     return null;
                 }
                 var method = (Func<object[]?, object?>)Delegate.CreateDelegate(typeof(Func<object[], object?>), pluginInstance, methodInfo);
@@ -199,7 +199,7 @@ namespace Wim
 			}
 			else
 			{
-				MessageManager.NotifyAll($"Plugin '{pluginName}' not found.", "Error");
+				MessageManager.NotifyAll("Error", $"Plugin '{pluginName}' not found.");
 				return null;
             }
         }
