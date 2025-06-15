@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Collections.ObjectModel;
 using Wim.Abstractions;
 
 namespace Wim
@@ -20,7 +21,7 @@ namespace Wim
         /// Gets the runtime paths.
         /// </summary>
         /// <returns>A list of runtime paths.</returns>
-        public List<string> GetRuntimePaths()
+        public Collection<string> GetRuntimePaths()
 		{
 			return paths;
 		}
@@ -29,7 +30,7 @@ namespace Wim
 		/// Sets the runtime paths to a new list.
 		/// </summary>
 		/// <param name="newPaths">The new list of paths.</param>
-		public void SetRuntimePaths(List<string> newPaths)
+		public void SetRuntimePaths(Collection<string> newPaths)
 		{
 			paths.Clear();
 			if (newPaths != null)
@@ -61,9 +62,9 @@ namespace Wim
 		/// directory and does not include subdirectories.</remarks>
 		/// <returns>A list of strings containing the full file paths of all discovered plugin assemblies. If no plugin assemblies are
 		/// found, the list will be empty.</returns>
-		public List<string> GetPluginPaths()
+		public Collection<string> GetPluginPaths()
 		{
-            List<string> pluginPaths = [];
+            Collection<string> pluginPaths = [];
 			foreach (var path in paths)
 			{
 				if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
@@ -87,13 +88,13 @@ namespace Wim
 		/// </summary>
 		/// <param name="fileName">The name of the file.</param>
 		/// <returns>The full paths to the file.</returns>
-		public List<string> GetPaths(string fileName)
+		public Collection<string> GetPaths(string fileName)
 		{
 			if (string.IsNullOrEmpty(fileName))
 			{
 				return [];
 			}
-			List<string> foundPaths = [];
+			Collection<string> foundPaths = [];
 			foreach (var path in paths)
 			{
 				var fullPath = Path.Combine(path, fileName);
@@ -215,28 +216,33 @@ namespace Wim
 		/// Gets the initial runtime paths.
 		/// </summary>
 		/// <returns>A list of initial runtime paths.</returns>
-        private List<string> InitializePaths(MessageManager message)
+        private Collection<string> InitializePaths(MessageManager message)
         {
-			List<string> initialPaths = [];
-			string? directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-			if (string.IsNullOrEmpty(directoryName))
-			{
+            Collection<string> initialPaths = new Collection<string>();
+            string? directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (string.IsNullOrEmpty(directoryName))
+            {
                 message.NotifyAll("Error", "Unable to determine the directory of the executing assembly.");
-			}
-			else
-			{
-				initialPaths.Add(Path.Combine(directoryName, ".."));
-			}
-			initialPaths.AddRange([
-				GetRootPath(RootPath.Config),
-				GetRootPath(RootPath.Data),
-				GetStdPath(StdPath.Config),
-				GetStdPath(StdPath.Data),
-			]);
+            }
+            else
+            {
+                initialPaths.Add(Path.Combine(directoryName, ".."));
+            }
+            foreach (var path in new List<string>
+            {
+                GetRootPath(RootPath.Config),
+                GetRootPath(RootPath.Data),
+                GetStdPath(StdPath.Config),
+                GetStdPath(StdPath.Data),
+            })
+            {
+                initialPaths.Add(path);
+            }
 
             return initialPaths;
         }
 
+    
 		/// <summary>
 		/// The standard root path.
 		/// </summary>
@@ -255,6 +261,6 @@ namespace Wim
 		/// <summary>
 		/// The runtime paths.
 		/// </summary>
-		private readonly List<string> paths;
+		private readonly Collection<string> paths;
     }
 }

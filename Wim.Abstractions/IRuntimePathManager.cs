@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -82,13 +83,13 @@ namespace Wim.Abstractions
 		/// Gets the runtime paths.
 		/// </summary>
 		/// <returns>A list of runtime paths.</returns>
-		public abstract List<string> GetRuntimePaths();
+		public abstract Collection<string> GetRuntimePaths();
 
 		/// <summary>
 		/// Sets the runtime paths to a new list.
 		/// </summary>
 		/// <param name="newPaths">The new list of paths.</param>
-		public abstract void SetRuntimePaths(List<string> paths);
+		public abstract void SetRuntimePaths(Collection<string> paths);
 
 		/// <summary>
 		/// Removes a path from the runtime paths.
@@ -104,14 +105,14 @@ namespace Wim.Abstractions
 		/// directory and does not include subdirectories.</remarks>
 		/// <returns>A list of strings containing the full file paths of all discovered plugin assemblies. If no plugin assemblies are
 		/// found, the list will be empty.</returns>
-		public abstract List<string> GetPluginPaths();
+		public abstract Collection<string> GetPluginPaths();
 
 		/// <summary>
 		/// Gets a list of all paths where a file with the specified name exists.
 		/// </summary>
 		/// <param name="fileName">The name of the file.</param>
 		/// <returns>The full paths to the file.</returns>
-		public abstract List<string> GetPaths(string fileName);
+		public abstract Collection<string> GetPaths(string fileName);
 
 		/// <summary>
 		/// Gets the standard path for the specified standard path enumeration.
