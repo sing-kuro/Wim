@@ -27,10 +27,10 @@ namespace Wim
 
 			var trayIconName = ((Constants)Constants).TrayIconName;
 			var paths = RuntimePathManager.GetPaths(trayIconName);
-			System.IO.Stream icon;
+			Stream icon;
 			if (paths.Count != 0)
 			{
-				icon = GetResourceStream(new Uri(paths[0], UriKind.Absolute)).Stream;
+				icon = new FileStream(paths[0], FileMode.Open);
 			}
 			else
 			{
@@ -55,7 +55,7 @@ namespace Wim
 		/// <summary>
 		/// Calls the shutdown method when the Exit menu item is clicked.
 		/// </summary>
-		private void Exit_Click(object? sender, System.EventArgs e)
+		private void Exit_Click(object? sender, EventArgs e)
 		{
 			Shutdown();
 		}
@@ -76,9 +76,9 @@ namespace Wim
 		private void CleanCache()
 		{
 			var cachePath = RuntimePathManager.GetStdPath(StdPath.Cache);
-			if (System.IO.Directory.Exists(cachePath))
+			if (Directory.Exists(cachePath))
 			{
-				System.IO.DirectoryInfo cacheDir = new(cachePath);
+				DirectoryInfo cacheDir = new(cachePath);
 				foreach (var file in cacheDir.GetFiles())
 				{
 					try
