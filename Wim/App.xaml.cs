@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.IO;
 using System.Reflection;
 using Wim.Abstractions;
 
@@ -27,10 +28,10 @@ namespace Wim
 
 			var trayIconName = ((Constants)Constants).TrayIconName;
 			var paths = RuntimePathManager.GetPaths(trayIconName);
-			System.IO.Stream icon;
+			Stream icon;
 			if (paths.Count != 0)
 			{
-				icon = GetResourceStream(new Uri(paths[0], UriKind.Absolute)).Stream;
+				icon = new FileStream(paths[0], FileMode.Open);
 			}
 			else
 			{
@@ -55,7 +56,7 @@ namespace Wim
 		/// <summary>
 		/// Calls the shutdown method when the Exit menu item is clicked.
 		/// </summary>
-		private void Exit_Click(object? sender, System.EventArgs e)
+		private void Exit_Click(object? sender, EventArgs e)
 		{
 			Shutdown();
 		}
@@ -76,9 +77,9 @@ namespace Wim
 		private void CleanCache()
 		{
 			var cachePath = RuntimePathManager.GetStdPath(StdPath.Cache);
-			if (System.IO.Directory.Exists(cachePath))
+			if (Directory.Exists(cachePath))
 			{
-				System.IO.DirectoryInfo cacheDir = new(cachePath);
+				DirectoryInfo cacheDir = new(cachePath);
 				foreach (var file in cacheDir.GetFiles())
 				{
 					try
@@ -143,25 +144,30 @@ namespace Wim
                     var pluginInstance = (IPlugin?)Activator.CreateInstance(type);
 					if (pluginInstance == null)
 					{
-						MessageManager.NotifyAll($"Failed to create instance of plugin type {type.FullName} from {pluginPath}.", "Error");
+						MessageManager.NotifyAll("Error", $"Failed to create instance of plugin type {type.FullName} from {pluginPath}.");
 						continue;
 					}
 					pluginInstance.Initialize(this);
+					var author = pluginInstance.Author;
 					var pluginName = pluginInstance.Name;
-					if (!Plugins.ContainsKey(pluginName))
+					if (!Plugins.TryGetValue(author, out _))
 					{
-						Plugins[pluginName] = pluginInstance;
-						MessageManager.NotifyAll($"Plugin '{pluginName}' loaded successfully.", "Info");
+						Plugins[author] = [];
+                    }
+					if (!Plugins[author].ContainsKey(pluginName))
+                    {
+                        Plugins[author][pluginName] = pluginInstance;
+						MessageManager.NotifyAll("LoadPlugin", pluginName);
 					}
 					else
 					{
-						MessageManager.NotifyAll($"Plugin '{pluginName}' is already loaded.", "Warning");
+						MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' is already loaded.");
                     }
                 }
 			}
 			catch (Exception ex)
 			{
-				MessageManager.NotifyAll($"Failed to load plugin from {pluginPath}: {ex.Message}", "Error");
+				MessageManager.NotifyAll("Error", $"Failed to load plugin from {pluginPath}: {ex.Message}");
 			}
         }
 
@@ -176,38 +182,39 @@ namespace Wim
 			{
 				pluginInstance.GetType().GetMethod("Unload")?.Invoke(pluginInstance, [this]);
                 Plugins.Remove(pluginName);
+				MessageManager.NotifyAll("UnloadPlugin", pluginName);
 			}
 			else
 			{
-				MessageManager.NotifyAll($"Plugin '{pluginName}' not found.", "Warning");
+				MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' not found.");
             }
         }
 
-		public object? InvokePluginMethod(string pluginName, string methodName, params object[]? parameters)
+		public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters)
 		{
-			if (Plugins.TryGetValue(pluginName, out var pluginInstance))
+            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, methodName });
+			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
 			{
-            var methodKey = $"{pluginName}.{methodName}";
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
-                    MessageManager.NotifyAll($"Method '{methodName}' not found in plugin '{pluginName}'.", "Error");
-                    return null;
+					MessageManager.NotifyAll("Error", $"Method '{methodName}' not found in plugin '{author}.{pluginName}'.");
+					return null;
                 }
                 var method = (Func<object[]?, object?>)Delegate.CreateDelegate(typeof(Func<object[], object?>), pluginInstance, methodInfo);
 				return method(parameters);
 			}
 			else
 			{
-				MessageManager.NotifyAll($"Plugin '{pluginName}' not found.", "Error");
+				MessageManager.NotifyAll("Error", $"Plugin '{author}.{pluginName}' not found.");
 				return null;
             }
         }
 
         /// <summary>
-        /// A dictionary of loaded plugins.
+        /// A collection of loaded plugins, organized by author and plugin name.
         /// </summary>
-        private Dictionary<string, IPlugin> Plugins { get; }
+        private Dictionary<string, Dictionary<string, IPlugin>> Plugins { get; } = [];
 
 		/// <summary>
 		/// Provides access to various application constants and settings.
