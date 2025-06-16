@@ -3,6 +3,11 @@
     public interface IPlugin
     {
         /// <summary>
+        /// Gets the name of the author of the plugin.
+        /// </summary>
+        public string Author { get; }
+
+        /// <summary>
         /// Gets the name of the plugin.
         /// </summary>
         public string Name { get; }

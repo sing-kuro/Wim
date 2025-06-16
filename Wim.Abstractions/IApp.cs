@@ -17,11 +17,12 @@
         /// <summary>
         /// Invokes a specified method on a plugin by name, passing optional parameters.
         /// </summary>
+		/// <param name="author">The author of the plugin containing the method to invoke. Cannot be null or empty.</param>
         /// <param name="pluginName">The name of the plugin containing the method to invoke. Cannot be null or empty.</param>
         /// <param name="methodName">The name of the method to invoke on the plugin. Cannot be null or empty.</param>
         /// <param name="parameters">An optional array of parameters to pass to the method. Can be null if no parameters are required.</param>
         /// <returns>The result of the invoked method, or <see langword="null"/> if the method does not return a value.</returns>
-        public object? InvokePluginMethod(string pluginName, string methodName, params object[]? parameters);
+        public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters);
 
 		/// <summary>
 		/// Gets an instance of the Constants class, which provides access to application-wide constants.

@@ -147,11 +147,16 @@ namespace Wim
 						continue;
 					}
 					pluginInstance.Initialize(this);
+					var author = pluginInstance.Author;
 					var pluginName = pluginInstance.Name;
-					if (!Plugins.ContainsKey(pluginName))
+					if (!Plugins.TryGetValue(author, out _))
 					{
-						Plugins[pluginName] = pluginInstance;
-						MessageManager.NotifyAll("Info", $"Plugin '{pluginName}' loaded successfully.");
+						Plugins[author] = [];
+					}
+					if (!Plugins[author].ContainsKey(pluginName))
+                    {
+                        Plugins[author][pluginName] = pluginInstance;
+						MessageManager.NotifyAll("LoadPlugin", pluginName);
 					}
 					else
 					{
@@ -183,9 +188,10 @@ namespace Wim
             }
         }
 
-		public object? InvokePluginMethod(string pluginName, string methodName, params object[]? parameters)
+		public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters)
 		{
-			if (Plugins.TryGetValue(pluginName, out var pluginInstance))
+            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, methodName });
+			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
 			{
             var methodKey = $"{pluginName}.{methodName}";
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
@@ -205,9 +211,9 @@ namespace Wim
         }
 
         /// <summary>
-        /// A dictionary of loaded plugins.
+        /// A collection of loaded plugins, organized by author and plugin name.
         /// </summary>
-        private Dictionary<string, IPlugin> Plugins { get; }
+        private Dictionary<string, Dictionary<string, IPlugin>> Plugins { get; } = [];
 
 		/// <summary>
 		/// Provides access to various application constants and settings.
