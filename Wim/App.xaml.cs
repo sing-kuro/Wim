@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.IO;
 using System.Reflection;
+using System.Collections.ObjectModel;
 using Semver;
 using Wim.Abstractions;
 
@@ -259,6 +260,28 @@ namespace Wim
 				return null;
             }
         }
+
+
+        /// <summary>
+        /// Retrieves all plugins implementing the specified type.
+        /// </summary>
+        /// <remarks>This method filters the available plugins and returns only those that match the specified type.
+        /// Use this method to retrieve plugins for specific functionality or behavior.</remarks>
+        /// <typeparam name="T">The type of plugins to retrieve. Only plugins that can be cast to this type will be included in the result.</typeparam>
+        /// <returns>A list of plugins of type <typeparamref name="T"/>. If no plugins of the specified type are found, the list will
+        /// be empty.</returns>
+        public Collection<T> GetPlugins<T>()
+		{
+			var result = new Collection<T>();
+			foreach (var plugin in Plugins.Values)
+			{
+                if (plugin is T typedPlugin)
+				{
+					result.Add(typedPlugin);
+                }
+            }
+			return result;
+		}
 
         /// <summary>
         /// A collection of loaded plugins, organized by author and plugin name.

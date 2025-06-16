@@ -1,4 +1,6 @@
-﻿namespace Wim.Abstractions
+﻿using System.Collections.ObjectModel;
+
+namespace Wim.Abstractions
 {
     public interface IApp
     {
@@ -28,6 +30,16 @@
         /// <returns>The result of the invoked method, or <see langword="null"/> if the method does not return a value.</returns>
         public object? InvokePluginMethod(string author, string pluginName, string versionRange, string methodName, params object[]? parameters);
 
+        /// <summary>
+        /// Retrieves a list of plugins implementing the specified type.
+        /// </summary>
+        /// <remarks>This method searches for plugins that match the specified type <typeparamref name="T"/> and
+        /// returns them as a list. Ensure that the type parameter <typeparamref name="T"/> corresponds to a valid plugin
+        /// type.</remarks>
+        /// <typeparam name="T">The type of plugins to retrieve.</typeparam>
+        /// <returns>A list of plugins of type <typeparamref name="T"/>. Returns an empty list if no plugins of the specified type are
+        /// found.</returns>
+        public Collection<T> GetPlugins<T>();
 
 		/// <summary>
 		/// Shuts down the application gracefully.
