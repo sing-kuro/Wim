@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.IO;
 using System.Reflection;
+using Semver;
 using Wim.Abstractions;
 
 namespace Wim
@@ -198,11 +199,54 @@ namespace Wim
             }
         }
 
-		public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters)
+        /// <summary>
+        /// Invokes a specified method on a plugin instance, identified by its author, name, and version range.
+        /// </summary>
+        /// <remarks>This method performs several validation steps before invoking the plugin method: <list
+        /// type="bullet"> <item><description>Ensures the plugin exists and is registered under the specified author and
+        /// name.</description></item> <item><description>Validates the plugin's version against the provided version
+        /// range.</description></item> <item><description>Checks that the specified method exists and is accessible on the
+        /// plugin instance.</description></item> </list> If any validation step fails, an error message is sent via the
+        /// <c>MessageManager</c>, and the method returns <see langword="null"/>.</remarks>
+        /// <param name="author">The author of the plugin. This is used to locate the plugin instance.</param>
+        /// <param name="pluginName">The name of the plugin. This is used to locate the plugin instance.</param>
+        /// <param name="methodName">The name of the method to invoke on the plugin instance.</param>
+        /// <param name="versionRange">The version range that the plugin must satisfy. The version is validated against this range.</param>
+        /// <param name="parameters">An optional array of parameters to pass to the method being invoked. Can be <see langword="null"/> if the method
+        /// does not require parameters.</param>
+        /// <returns>The result of the invoked method, or <see langword="null"/> if the plugin or method could not be found, the
+        /// version range is invalid, or the plugin's version does not satisfy the specified range.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="author"/>, <paramref name="pluginName"/>, or <paramref name="methodName"/> is <see langword="null"/> or empty.</exception>"
+        public object? InvokePluginMethod(string author, string pluginName, string methodName, string versionRange, params object[]? parameters)
 		{
-            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, methodName });
+            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, versionRange, methodName });
 			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
 			{
+				SemVersionRange range;
+				try
+				{
+					range = SemVersionRange.Parse(versionRange);
+				}
+				catch (Exception ex)
+				{
+					MessageManager.NotifyAll("Error", $"Failed to parse version range '{versionRange}': {ex.Message}");
+					return null;
+				}
+				SemVersion pluginVersion;
+				try
+				{
+					pluginVersion = SemVersion.Parse(pluginInstance.Version);
+				}
+				catch (Exception ex)
+				{
+					MessageManager.NotifyAll("Error", $"Failed to parse version '{pluginInstance.Version}' for plugin '{author}.{pluginName}': {ex.Message}");
+					return null;
+				}
+				if (!range.Contains(pluginVersion))
+				{
+					MessageManager.NotifyAll("Error", $"Plugin '{author}.{pluginName}' version '{pluginInstance.Version}' does not satisfy the range '{versionRange}'.");
+					return null;
+				}
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
