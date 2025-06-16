@@ -154,18 +154,14 @@ namespace Wim
 					pluginInstance.Initialize(this);
 					var author = pluginInstance.Author;
 					var pluginName = pluginInstance.Name;
-					if (!Plugins.TryGetValue(author, out _))
-					{
-						Plugins[author] = [];
-                    }
-					if (!Plugins[author].ContainsKey(pluginName))
+					if (!Plugins.TryGetValue((author, pluginName), out _))
                     {
-                        Plugins[author][pluginName] = pluginInstance;
-						MessageManager.NotifyAll("LoadPlugin", pluginName);
+                        Plugins[(author, pluginName)] = pluginInstance;
+						MessageManager.NotifyAll("LoadPlugin", (author, pluginName));
 					}
 					else
 					{
-						MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' is already loaded.");
+						MessageManager.NotifyAll("Warning", $"Plugin '{author}.{pluginName}' is already loaded.");
                     }
                 }
 				return result;
@@ -181,14 +177,15 @@ namespace Wim
         /// Unloads the specified plugin by name, invoking its unload logic if available.
         /// </summary>
         /// <remarks>If the plugin defines an "Unload" method, it will be invoked before the plugin is removed. If the plugin is not found in the <c>Plugins</c> collection, a warning message is sent to all registered message handlers.</remarks>
-        /// <param name="pluginName">The name of the plugin to unload. This must match the name of a currently loaded plugin.</param>
+		/// <param name="author">The author of the plugin to unload.</param>
+        /// <param name="pluginName">The name of the plugin to unload.</param>
 		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
-        public bool UnloadPlugin(string pluginName)
+        public bool UnloadPlugin(string author, string pluginName)
 		{
-			if(Plugins.TryGetValue(pluginName, out var pluginInstance))
+			if(Plugins.TryGetValue((author, pluginName), out var pluginInstance))
 			{
 				pluginInstance.GetType().GetMethod("Unload")?.Invoke(pluginInstance, [this]);
-                Plugins.Remove(pluginName);
+                Plugins.Remove((author, pluginName));
 				MessageManager.NotifyAll("UnloadPlugin", pluginName);
 				return true;
 			}
@@ -220,7 +217,7 @@ namespace Wim
         public object? InvokePluginMethod(string author, string pluginName, string methodName, string versionRange, params object[]? parameters)
 		{
             MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, versionRange, methodName });
-			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
+			if (Plugins.TryGetValue((author, pluginName), out var pluginInstance))
 			{
 				SemVersionRange range;
 				try
@@ -266,7 +263,7 @@ namespace Wim
         /// <summary>
         /// A collection of loaded plugins, organized by author and plugin name.
         /// </summary>
-        private Dictionary<string, Dictionary<string, IPlugin>> Plugins { get; } = [];
+        private Dictionary<(string, string), IPlugin> Plugins { get; } = [];
 
 		/// <summary>
 		/// Provides access to various application constants and settings.

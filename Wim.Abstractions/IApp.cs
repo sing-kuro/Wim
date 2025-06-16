@@ -12,9 +12,10 @@
         /// <summary>
         /// Unloads the currently loaded plugin, releasing any associated resources.
         /// </summary>
+		/// <param name="author">The author of the plugin to unload. Cannot be null or empty.</param>
         /// <param name="pluginName">The name of the plugin to unload. Cannot be null or empty.</param>
 		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
-        public bool UnloadPlugin(string pluginName);
+        public bool UnloadPlugin(string author, string pluginName);
 
         /// <summary>
         /// Invokes a specified method on a plugin by name, passing optional parameters.
