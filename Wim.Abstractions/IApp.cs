@@ -6,13 +6,15 @@
         /// Loads a plugin into the application.
         /// </summary>
         /// <param name="pluginPath">The file path to the plugin assembly. Cannot be null or empty.</param>
-        public void LoadPlugin(string pluginPath);
+		/// <returns><see langword="true"/> if the plugin was successfully loaded and registered; otherwise, <see langword="false"/>.</returns>
+        public bool LoadPlugin(string pluginPath);
 
         /// <summary>
         /// Unloads the currently loaded plugin, releasing any associated resources.
         /// </summary>
         /// <param name="pluginName">The name of the plugin to unload. Cannot be null or empty.</param>
-        public void UnloadPlugin(string pluginName);
+		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
+        public bool UnloadPlugin(string pluginName);
 
         /// <summary>
         /// Invokes a specified method on a plugin by name, passing optional parameters.

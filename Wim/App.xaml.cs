@@ -123,28 +123,31 @@ namespace Wim
             }
 		}
 
-		/// <summary>
-		/// Loads a plugin from the specified file path and registers it in the plugin collection.
-		/// </summary>
-		/// <remarks>The method attempts to load the specified assembly, locate the "Wim.Plugin" type, and create an
-		/// instance of it. The plugin instance is then registered in the <c>Plugins</c> collection using its <c>Name</c>
-		/// property as the key. If the <c>Name</c> property is not defined or cannot be retrieved, the plugin is registered
-		/// with the key "Unknown Plugin".</remarks>
-		/// <param name="pluginPath">The file path to the plugin assembly. This must be a valid path to a .NET assembly containing a type named
-		/// "Wim.Plugin".</param>
-		/// <exception cref="InvalidOperationException">Thrown if the plugin instance could not be created or is <see langword="null"/>.</exception>
-		public void LoadPlugin(string pluginPath)
+        /// <summary>
+        /// Loads a plugin from the specified file path and registers it in the plugin collection.
+        /// </summary>
+        /// <remarks>The method attempts to load the specified assembly, locate the "Wim.Plugin" type, and create an
+        /// instance of it. The plugin instance is then registered in the <c>Plugins</c> collection using its <c>Name</c>
+        /// property as the key. If the <c>Name</c> property is not defined or cannot be retrieved, the plugin is registered
+        /// with the key "Unknown Plugin".</remarks>
+        /// <param name="pluginPath">The file path to the plugin assembly. This must be a valid path to a .NET assembly containing a type named
+        /// "Wim.Plugin".</param>
+        /// <returns><see langword="true"/> if the plugin was successfully loaded and registered; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the plugin instance could not be created or is <see langword="null"/>.</exception>
+        public bool LoadPlugin(string pluginPath)
 		{
 			try
 			{
 				var assembly = Assembly.LoadFrom(pluginPath);
 				var types = assembly.GetTypes().Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass);
+				bool result = true;
 				foreach (var type in types)
 				{
                     var pluginInstance = (IPlugin?)Activator.CreateInstance(type);
 					if (pluginInstance == null)
 					{
 						MessageManager.NotifyAll("Error", $"Failed to create instance of plugin type {type.FullName} from {pluginPath}.");
+						result = false;
 						continue;
 					}
 					pluginInstance.Initialize(this);
@@ -164,10 +167,12 @@ namespace Wim
 						MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' is already loaded.");
                     }
                 }
+				return result;
 			}
 			catch (Exception ex)
 			{
 				MessageManager.NotifyAll("Error", $"Failed to load plugin from {pluginPath}: {ex.Message}");
+				return false;
 			}
         }
 
@@ -176,17 +181,20 @@ namespace Wim
         /// </summary>
         /// <remarks>If the plugin defines an "Unload" method, it will be invoked before the plugin is removed. If the plugin is not found in the <c>Plugins</c> collection, a warning message is sent to all registered message handlers.</remarks>
         /// <param name="pluginName">The name of the plugin to unload. This must match the name of a currently loaded plugin.</param>
-        public void UnloadPlugin(string pluginName)
+		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
+        public bool UnloadPlugin(string pluginName)
 		{
 			if(Plugins.TryGetValue(pluginName, out var pluginInstance))
 			{
 				pluginInstance.GetType().GetMethod("Unload")?.Invoke(pluginInstance, [this]);
                 Plugins.Remove(pluginName);
 				MessageManager.NotifyAll("UnloadPlugin", pluginName);
+				return true;
 			}
 			else
 			{
 				MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' not found.");
+				return false;
             }
         }
 
