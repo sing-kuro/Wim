@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Authors>Kuro Amami</Authors>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <RepositoryUrl>https://github.com/sing-kuro/Wim</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
