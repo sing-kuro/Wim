@@ -4,7 +4,7 @@ namespace Wim
 {
     internal class MessageManager : IMessageManager
     {
-        private readonly Dictionary<string, List<Action<object>>> _subscribers = [];
+        private readonly Dictionary<string, List<Action<object?>>> _subscribers = [];
 
         /// <summary>
         /// Subscribes to a specific message type and registers a callback to be invoked when a message of that type is
@@ -15,7 +15,7 @@ namespace Wim
         /// <param name="messageType">The type of message to subscribe to. This must be a non-null, non-empty string that uniquely identifies the
         /// message type.</param>
         /// <param name="callback">The action to execute when a message of the specified type is received. This must be a non-null delegate.</param>
-        public void Subscribe(string messageType, Action<object> callback)
+        public void Subscribe(string messageType, Action<object?> callback)
         {
             if (_subscribers.ContainsKey(messageType))
             {
@@ -32,7 +32,7 @@ namespace Wim
         /// subscription list.</remarks>
         /// <param name="messageType">The type of message for which the callback was registered. Cannot be null or empty.</param>
         /// <param name="callback">The callback to be removed. Cannot be null.</param>
-        public void Unsubscribe(string messageType, Action<object> callback)
+        public void Unsubscribe(string messageType, Action<object?> callback)
         {
             if (_subscribers.TryGetValue(messageType, out var callbacks))
             {
@@ -64,7 +64,7 @@ namespace Wim
         /// message.</param>
         /// <param name="message">The message to be delivered to the subscribers. This can be any object representing the data associated with
         /// the message.</param>
-        public void NotifyAll(string messageType, object message)
+        public void NotifyAll(string messageType, object? message)
         {
             if (_subscribers.TryGetValue(messageType, out var callbacks))
             {
@@ -84,7 +84,7 @@ namespace Wim
         /// subscribers exist for the  given message type, the method does nothing.</remarks>
         /// <param name="messageType">The type of the message to notify subscribers about. Cannot be null or empty.</param>
         /// <param name="message">The message object to pass to the subscriber. Can be any object relevant to the message type.</param>
-        public void NotifyOne(string messageType, object message)
+        public void NotifyOne(string messageType, object? message)
         {
             if (_subscribers.TryGetValue(messageType, out var callbacks) && callbacks.Count > 0)
             {

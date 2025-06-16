@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.IO;
 using System.Reflection;
 using Wim.Abstractions;
 
@@ -152,7 +153,7 @@ namespace Wim
 					if (!Plugins.TryGetValue(author, out _))
 					{
 						Plugins[author] = [];
-					}
+                    }
 					if (!Plugins[author].ContainsKey(pluginName))
                     {
                         Plugins[author][pluginName] = pluginInstance;
@@ -181,6 +182,7 @@ namespace Wim
 			{
 				pluginInstance.GetType().GetMethod("Unload")?.Invoke(pluginInstance, [this]);
                 Plugins.Remove(pluginName);
+				MessageManager.NotifyAll("UnloadPlugin", pluginName);
 			}
 			else
 			{
@@ -193,19 +195,18 @@ namespace Wim
             MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, methodName });
 			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
 			{
-            var methodKey = $"{pluginName}.{methodName}";
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
-					MessageManager.NotifyAll("Error", $"Method '{methodName}' not found in plugin '{pluginName}'.");
-                    return null;
+					MessageManager.NotifyAll("Error", $"Method '{methodName}' not found in plugin '{author}.{pluginName}'.");
+					return null;
                 }
                 var method = (Func<object[]?, object?>)Delegate.CreateDelegate(typeof(Func<object[], object?>), pluginInstance, methodInfo);
 				return method(parameters);
 			}
 			else
 			{
-				MessageManager.NotifyAll("Error", $"Plugin '{pluginName}' not found.");
+				MessageManager.NotifyAll("Error", $"Plugin '{author}.{pluginName}' not found.");
 				return null;
             }
         }
