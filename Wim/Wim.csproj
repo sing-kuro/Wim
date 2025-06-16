@@ -11,7 +11,7 @@
     <ApplicationIcon>Wim.ico</ApplicationIcon>
     <Title>Wim</Title>
     <Authors>Kuro Amami</Authors>
-	<Version>0.2.0</Version>
+	<Version>0.3.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,6 +24,10 @@
 
   <ItemGroup>
     <None Remove="wim.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Semver" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,6 @@
-﻿namespace Wim.Abstractions
+﻿using System.Collections.ObjectModel;
+
+namespace Wim.Abstractions
 {
     public interface IApp
     {
@@ -6,13 +8,16 @@
         /// Loads a plugin into the application.
         /// </summary>
         /// <param name="pluginPath">The file path to the plugin assembly. Cannot be null or empty.</param>
-        public void LoadPlugin(string pluginPath);
+		/// <returns><see langword="true"/> if the plugin was successfully loaded and registered; otherwise, <see langword="false"/>.</returns>
+        public bool LoadPlugin(string pluginPath);
 
         /// <summary>
         /// Unloads the currently loaded plugin, releasing any associated resources.
         /// </summary>
+		/// <param name="author">The author of the plugin to unload. Cannot be null or empty.</param>
         /// <param name="pluginName">The name of the plugin to unload. Cannot be null or empty.</param>
-        public void UnloadPlugin(string pluginName);
+		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
+        public bool UnloadPlugin(string author, string pluginName);
 
         /// <summary>
         /// Invokes a specified method on a plugin by name, passing optional parameters.
@@ -20,9 +25,26 @@
 		/// <param name="author">The author of the plugin containing the method to invoke. Cannot be null or empty.</param>
         /// <param name="pluginName">The name of the plugin containing the method to invoke. Cannot be null or empty.</param>
         /// <param name="methodName">The name of the method to invoke on the plugin. Cannot be null or empty.</param>
+		/// <param name="versionRange">The range of plugin versions to consider when invoking the method. This can be used to ensure compatibility with specific plugin versions.</param>
         /// <param name="parameters">An optional array of parameters to pass to the method. Can be null if no parameters are required.</param>
         /// <returns>The result of the invoked method, or <see langword="null"/> if the method does not return a value.</returns>
-        public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters);
+        public object? InvokePluginMethod(string author, string pluginName, string versionRange, string methodName, params object[]? parameters);
+
+        /// <summary>
+        /// Retrieves a list of plugins implementing the specified type.
+        /// </summary>
+        /// <remarks>This method searches for plugins that match the specified type <typeparamref name="T"/> and
+        /// returns them as a list. Ensure that the type parameter <typeparamref name="T"/> corresponds to a valid plugin
+        /// type.</remarks>
+        /// <typeparam name="T">The type of plugins to retrieve.</typeparam>
+        /// <returns>A list of plugins of type <typeparamref name="T"/>. Returns an empty list if no plugins of the specified type are
+        /// found.</returns>
+        public Collection<T> GetPlugins<T>();
+
+		/// <summary>
+		/// Shuts down the application gracefully.
+		/// </summary>
+		public void Shutdown();
 
 		/// <summary>
 		/// Gets an instance of the Constants class, which provides access to application-wide constants.

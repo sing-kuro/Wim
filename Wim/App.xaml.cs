@@ -1,6 +1,8 @@
 ﻿using System.Windows;
 using System.IO;
 using System.Reflection;
+using System.Collections.ObjectModel;
+using Semver;
 using Wim.Abstractions;
 
 namespace Wim
@@ -123,51 +125,52 @@ namespace Wim
             }
 		}
 
-		/// <summary>
-		/// Loads a plugin from the specified file path and registers it in the plugin collection.
-		/// </summary>
-		/// <remarks>The method attempts to load the specified assembly, locate the "Wim.Plugin" type, and create an
-		/// instance of it. The plugin instance is then registered in the <c>Plugins</c> collection using its <c>Name</c>
-		/// property as the key. If the <c>Name</c> property is not defined or cannot be retrieved, the plugin is registered
-		/// with the key "Unknown Plugin".</remarks>
-		/// <param name="pluginPath">The file path to the plugin assembly. This must be a valid path to a .NET assembly containing a type named
-		/// "Wim.Plugin".</param>
-		/// <exception cref="InvalidOperationException">Thrown if the plugin instance could not be created or is <see langword="null"/>.</exception>
-		public void LoadPlugin(string pluginPath)
+        /// <summary>
+        /// Loads a plugin from the specified file path and registers it in the plugin collection.
+        /// </summary>
+        /// <remarks>The method attempts to load the specified assembly, locate the "Wim.Plugin" type, and create an
+        /// instance of it. The plugin instance is then registered in the <c>Plugins</c> collection using its <c>Name</c>
+        /// property as the key. If the <c>Name</c> property is not defined or cannot be retrieved, the plugin is registered
+        /// with the key "Unknown Plugin".</remarks>
+        /// <param name="pluginPath">The file path to the plugin assembly. This must be a valid path to a .NET assembly containing a type named
+        /// "Wim.Plugin".</param>
+        /// <returns><see langword="true"/> if the plugin was successfully loaded and registered; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the plugin instance could not be created or is <see langword="null"/>.</exception>
+        public bool LoadPlugin(string pluginPath)
 		{
 			try
 			{
 				var assembly = Assembly.LoadFrom(pluginPath);
 				var types = assembly.GetTypes().Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass);
+				bool result = true;
 				foreach (var type in types)
 				{
                     var pluginInstance = (IPlugin?)Activator.CreateInstance(type);
 					if (pluginInstance == null)
 					{
 						MessageManager.NotifyAll("Error", $"Failed to create instance of plugin type {type.FullName} from {pluginPath}.");
+						result = false;
 						continue;
 					}
 					pluginInstance.Initialize(this);
 					var author = pluginInstance.Author;
 					var pluginName = pluginInstance.Name;
-					if (!Plugins.TryGetValue(author, out _))
-					{
-						Plugins[author] = [];
-                    }
-					if (!Plugins[author].ContainsKey(pluginName))
+					if (!Plugins.TryGetValue((author, pluginName), out _))
                     {
-                        Plugins[author][pluginName] = pluginInstance;
-						MessageManager.NotifyAll("LoadPlugin", pluginName);
+                        Plugins[(author, pluginName)] = pluginInstance;
+						MessageManager.NotifyAll("LoadPlugin", (author, pluginName));
 					}
 					else
 					{
-						MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' is already loaded.");
+						MessageManager.NotifyAll("Warning", $"Plugin '{author}.{pluginName}' is already loaded.");
                     }
                 }
+				return result;
 			}
 			catch (Exception ex)
 			{
 				MessageManager.NotifyAll("Error", $"Failed to load plugin from {pluginPath}: {ex.Message}");
+				return false;
 			}
         }
 
@@ -175,26 +178,73 @@ namespace Wim
         /// Unloads the specified plugin by name, invoking its unload logic if available.
         /// </summary>
         /// <remarks>If the plugin defines an "Unload" method, it will be invoked before the plugin is removed. If the plugin is not found in the <c>Plugins</c> collection, a warning message is sent to all registered message handlers.</remarks>
-        /// <param name="pluginName">The name of the plugin to unload. This must match the name of a currently loaded plugin.</param>
-        public void UnloadPlugin(string pluginName)
+		/// <param name="author">The author of the plugin to unload.</param>
+        /// <param name="pluginName">The name of the plugin to unload.</param>
+		/// <returns><see langword="true"/> if the plugin was successfully unloaded; otherwise, <see langword="false"/>.</returns>
+        public bool UnloadPlugin(string author, string pluginName)
 		{
-			if(Plugins.TryGetValue(pluginName, out var pluginInstance))
+			if(Plugins.TryGetValue((author, pluginName), out var pluginInstance))
 			{
 				pluginInstance.GetType().GetMethod("Unload")?.Invoke(pluginInstance, [this]);
-                Plugins.Remove(pluginName);
+                Plugins.Remove((author, pluginName));
 				MessageManager.NotifyAll("UnloadPlugin", pluginName);
+				return true;
 			}
 			else
 			{
 				MessageManager.NotifyAll("Warning", $"Plugin '{pluginName}' not found.");
+				return false;
             }
         }
 
-		public object? InvokePluginMethod(string author, string pluginName, string methodName, params object[]? parameters)
+        /// <summary>
+        /// Invokes a specified method on a plugin instance, identified by its author, name, and version range.
+        /// </summary>
+        /// <remarks>This method performs several validation steps before invoking the plugin method: <list
+        /// type="bullet"> <item><description>Ensures the plugin exists and is registered under the specified author and
+        /// name.</description></item> <item><description>Validates the plugin's version against the provided version
+        /// range.</description></item> <item><description>Checks that the specified method exists and is accessible on the
+        /// plugin instance.</description></item> </list> If any validation step fails, an error message is sent via the
+        /// <c>MessageManager</c>, and the method returns <see langword="null"/>.</remarks>
+        /// <param name="author">The author of the plugin. This is used to locate the plugin instance.</param>
+        /// <param name="pluginName">The name of the plugin. This is used to locate the plugin instance.</param>
+        /// <param name="methodName">The name of the method to invoke on the plugin instance.</param>
+        /// <param name="versionRange">The version range that the plugin must satisfy. The version is validated against this range.</param>
+        /// <param name="parameters">An optional array of parameters to pass to the method being invoked. Can be <see langword="null"/> if the method
+        /// does not require parameters.</param>
+        /// <returns>The result of the invoked method, or <see langword="null"/> if the plugin or method could not be found, the
+        /// version range is invalid, or the plugin's version does not satisfy the specified range.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="author"/>, <paramref name="pluginName"/>, or <paramref name="methodName"/> is <see langword="null"/> or empty.</exception>"
+        public object? InvokePluginMethod(string author, string pluginName, string methodName, string versionRange, params object[]? parameters)
 		{
-            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, methodName });
-			if (Plugins.TryGetValue(author, out var plugins) && plugins.TryGetValue(pluginName, out var pluginInstance))
+            MessageManager.NotifyAll("RequestMethod", new string[] { author, pluginName, versionRange, methodName });
+			if (Plugins.TryGetValue((author, pluginName), out var pluginInstance))
 			{
+				SemVersionRange range;
+				try
+				{
+					range = SemVersionRange.Parse(versionRange);
+				}
+				catch (Exception ex)
+				{
+					MessageManager.NotifyAll("Error", $"Failed to parse version range '{versionRange}': {ex.Message}");
+					return null;
+				}
+				SemVersion pluginVersion;
+				try
+				{
+					pluginVersion = SemVersion.Parse(pluginInstance.Version);
+				}
+				catch (Exception ex)
+				{
+					MessageManager.NotifyAll("Error", $"Failed to parse version '{pluginInstance.Version}' for plugin '{author}.{pluginName}': {ex.Message}");
+					return null;
+				}
+				if (!range.Contains(pluginVersion))
+				{
+					MessageManager.NotifyAll("Error", $"Plugin '{author}.{pluginName}' version '{pluginInstance.Version}' does not satisfy the range '{versionRange}'.");
+					return null;
+				}
                 var methodInfo = pluginInstance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
@@ -211,10 +261,32 @@ namespace Wim
             }
         }
 
+
+        /// <summary>
+        /// Retrieves all plugins implementing the specified type.
+        /// </summary>
+        /// <remarks>This method filters the available plugins and returns only those that match the specified type.
+        /// Use this method to retrieve plugins for specific functionality or behavior.</remarks>
+        /// <typeparam name="T">The type of plugins to retrieve. Only plugins that can be cast to this type will be included in the result.</typeparam>
+        /// <returns>A list of plugins of type <typeparamref name="T"/>. If no plugins of the specified type are found, the list will
+        /// be empty.</returns>
+        public Collection<T> GetPlugins<T>()
+		{
+			var result = new Collection<T>();
+			foreach (var plugin in Plugins.Values)
+			{
+                if (plugin is T typedPlugin)
+				{
+					result.Add(typedPlugin);
+                }
+            }
+			return result;
+		}
+
         /// <summary>
         /// A collection of loaded plugins, organized by author and plugin name.
         /// </summary>
-        private Dictionary<string, Dictionary<string, IPlugin>> Plugins { get; } = [];
+        private Dictionary<(string, string), IPlugin> Plugins { get; } = [];
 
 		/// <summary>
 		/// Provides access to various application constants and settings.
