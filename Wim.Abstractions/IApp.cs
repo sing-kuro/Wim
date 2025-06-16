@@ -28,6 +28,12 @@
         /// <returns>The result of the invoked method, or <see langword="null"/> if the method does not return a value.</returns>
         public object? InvokePluginMethod(string author, string pluginName, string versionRange, string methodName, params object[]? parameters);
 
+
+		/// <summary>
+		/// Shuts down the application gracefully.
+		/// </summary>
+		public void Shutdown();
+
 		/// <summary>
 		/// Gets an instance of the Constants class, which provides access to application-wide constants.
 		/// </summary>
